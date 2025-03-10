@@ -59,6 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: InputDecoration(
                     labelText: 'Nome',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                    prefixIcon: Icon(Icons.person, color: Color(0xFF2E3E84)),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),
@@ -77,7 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: InputDecoration(
                     labelText: 'Data de Nascimento',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
-                    suffixIcon: Icon(Icons.calendar_today, color: Color(0xFF2E3E84)),
+                    prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF2E3E84)),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),
@@ -93,6 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: InputDecoration(
                     labelText: 'Email',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                    prefixIcon: Icon(Icons.email, color: Color(0xFF2E3E84)),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),
@@ -109,6 +111,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: InputDecoration(
                     labelText: 'Senha',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                    prefixIcon: Icon(Icons.lock, color: Color(0xFF2E3E84)),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),
@@ -125,6 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: InputDecoration(
                     labelText: 'Confirmar Senha',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                    prefixIcon: Icon(Icons.lock, color: Color(0xFF2E3E84)),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),

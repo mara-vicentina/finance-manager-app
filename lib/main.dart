@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/add_transaction.dart';
+import 'screens/home_screen.dart';
+import 'screens/reports_screen.dart';
+import 'screens/list_transactions.dart';
+import 'screens/profile.dart';
+import 'dart:io';
+import 'package:flutter/services.dart';
 
 Map<int, Color> colorSwatch = {
   50: Color(0xFFE0E3F1),
@@ -32,37 +37,54 @@ class FinanceManagerApp extends StatelessWidget {
       theme: ThemeData(
          primarySwatch: customPrimarySwatch,
       ),
-      home: LoginScreen(),
+      home: MainScreen(),
     );
   }
 }
 
-class HomeScreen extends StatefulWidget {
+class MainScreen extends StatefulWidget {
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _MainScreenState createState() => _MainScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  final List<Map<String, dynamic>> _transactions = [];
 
-  void _addNewTransaction(String title, double amount, String category, DateTime date) {
+  final List<Widget> _screens = [
+    HomeScreen(),
+    ListTransactionsScreen(),
+    ReportsScreen(),
+    ProfileScreen(),
+  ];
+
+ void _onItemTapped(int index) {
     setState(() {
-      _transactions.add({
-        'title': title,
-        'amount': amount,
-        'category': category,
-        'date': date,
-      });
+      _selectedIndex = index;
     });
   }
 
-  void _openAddTransactionScreen() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => AddTransactionScreen(
-          onAddTransaction: _addNewTransaction,
-        ),
+  void _confirmExit(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text("Sair do App"),
+        content: Text("Tem certeza que deseja sair?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () {
+              if (Platform.isAndroid) {
+                SystemNavigator.pop(); // Fecha o app no Android
+              } else {
+                exit(0); // Fecha o app no iOS e Android
+              }
+            },
+            child: Text("Sair", style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
@@ -70,73 +92,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Finance Manager')),
-      body: Column(
-        children: [
-          
-          Card(
-            margin: EdgeInsets.all(16),
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text(
-                    'Saldo Total',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'R\$ ${_transactions.fold<double>(0.0, (sum, item) => sum + (item['amount'] as double)).toStringAsFixed(2)}',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          
-          Expanded(
-            child: ListView.builder(
-              itemCount: _transactions.length,
-              itemBuilder: (context, index) {
-                final tx = _transactions[index];
-                return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  elevation: 3,
-                  child: ListTile(
-                    leading: Icon(Icons.money, color: Colors.blue),
-                    title: Text(tx['title'], style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${tx['category']} - ${tx['date'].day}/${tx['date'].month}/${tx['date'].year}'),
-                    trailing: Text(
-                      'R\$ ${tx['amount'].toStringAsFixed(2)}',
-                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
       ),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openAddTransactionScreen,
-        child: Icon(Icons.add),
-      ),
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          if (index == 4) {
+            _confirmExit(context);
+          } else {
+            _onItemTapped(index);
+          }
         },
+        selectedItemColor: Color(0xFF2E3E84),
+        unselectedItemColor: Colors.grey,
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Início'),
-          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Análises'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Configurações'),
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Transações'),
+          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Relórios'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+          BottomNavigationBarItem(icon: Icon(Icons.exit_to_app,), label: 'Sair'),
         ],
       ),
     );

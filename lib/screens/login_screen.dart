@@ -28,6 +28,7 @@ class LoginScreen extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: 'Email',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                    prefixIcon: Icon(Icons.email, color: Color(0xFF2E3E84)),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),
@@ -45,6 +46,7 @@ class LoginScreen extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: 'Senha',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                    prefixIcon: Icon(Icons.lock, color: Color(0xFF2E3E84)),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../main.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -7,7 +10,64 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  TextEditingController _dateController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _passwordConfirmationController = TextEditingController();
+
+  String? _formattedDate;
+  bool _obscurePassword = true;
+  bool _obscurePasswordConfirmation = true;
+
+  Future<void> createUser() async {
+    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user';
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'name': _nameController.text,
+        'email': _emailController.text,
+        'password': _passwordController.text,
+        'password_confirmation': _passwordConfirmationController.text,
+        'birth_date': _formattedDate,
+      }),
+    );
+
+    final responseData = jsonDecode(response.body);
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Usuário registrado com sucesso!',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Color(0xFF2E3E84),
+        ),
+      );
+
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+    } else {
+      String errorMessage = responseData['message'] ?? 'Erro ao criar conta';
+
+      if (responseData.containsKey('errors') && responseData['errors'] is List) {
+        errorMessage += "\n" + responseData['errors'].join("\n");
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorMessage,
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
@@ -29,7 +89,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (picked != null) {
       setState(() {
-        _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
+        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+        _formattedDate = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
   }
@@ -49,12 +110,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 Image.asset(
                   'images/finance.png',
-                  width: 230, 
-                  height: 230, 
+                  width: 230,
+                  height: 230,
                 ),
                 SizedBox(height: 5),
 
                 TextField(
+                  controller: _nameController,
                   cursorColor: Color(0xFF2E3E84),
                   decoration: InputDecoration(
                     labelText: 'Nome',
@@ -90,6 +152,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(height: 10),
 
                 TextField(
+                  controller: _emailController,
                   cursorColor: Color(0xFF2E3E84),
                   decoration: InputDecoration(
                     labelText: 'Email',
@@ -107,11 +170,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(height: 10),
 
                 TextField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
                   cursorColor: Color(0xFF2E3E84),
                   decoration: InputDecoration(
                     labelText: 'Senha',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
                     prefixIcon: Icon(Icons.lock, color: Color(0xFF2E3E84)),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility, 
+                        color: Color(0xFF2E3E84),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),
@@ -119,16 +195,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
                     ),
                   ),
-                  obscureText: true,
                 ),
                 SizedBox(height: 10),
 
                 TextField(
+                  controller: _passwordConfirmationController,
+                  obscureText: _obscurePasswordConfirmation,
                   cursorColor: Color(0xFF2E3E84),
                   decoration: InputDecoration(
                     labelText: 'Confirmar Senha',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
                     prefixIcon: Icon(Icons.lock, color: Color(0xFF2E3E84)),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePasswordConfirmation ? Icons.visibility_off : Icons.visibility, 
+                        color: Color(0xFF2E3E84),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePasswordConfirmation = !_obscurePasswordConfirmation;
+                        });
+                      },
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),
@@ -136,12 +224,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
                     ),
                   ),
-                  obscureText: true,
                 ),
                 SizedBox(height: 20),
 
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: createUser,
                   child: Text('Criar Conta'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFF2E3E84),

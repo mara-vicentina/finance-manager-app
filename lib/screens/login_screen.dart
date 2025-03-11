@@ -1,12 +1,80 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
+import '../main.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+
+  bool _obscurePassword = true;
+
+  Future<void> loginUser() async {
+    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/login';
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': _emailController.text,
+        'password': _passwordController.text,
+      }),
+    );
+
+    final responseData = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      await _secureStorage.write(key: 'auth_token', value: responseData['token']);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Login bem-sucedido!',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Color(0xFF2E3E84),
+        ),
+      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Falha no login: ${responseData['message']}',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> checkUserLogin() async {
+    String? token = await _secureStorage.read(key: 'auth_token');
+    if (token != null) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    checkUserLogin();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: SingleChildScrollView( 
+        child: SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.all(16.0),
             child: Column(
@@ -16,14 +84,13 @@ class LoginScreen extends StatelessWidget {
               children: [
                 Image.asset(
                   'images/finance.png',
-                  width: 230, 
-                  height: 230
-                  , 
+                  width: 230,
+                  height: 230,
                 ),
                 SizedBox(height: 5),
 
-                
                 TextField(
+                  controller: _emailController,
                   cursorColor: Color(0xFF2E3E84),
                   decoration: InputDecoration(
                     labelText: 'Email',
@@ -40,13 +107,25 @@ class LoginScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 10),
 
-                
                 TextField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
                   cursorColor: Color(0xFF2E3E84),
                   decoration: InputDecoration(
                     labelText: 'Senha',
                     labelStyle: TextStyle(color: Color(0xFF2E3E84)),
                     prefixIcon: Icon(Icons.lock, color: Color(0xFF2E3E84)),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility, 
+                        color: Color(0xFF2E3E84),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
                     ),
@@ -54,15 +133,11 @@ class LoginScreen extends StatelessWidget {
                       borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
                     ),
                   ),
-                  obscureText: true,
                 ),
                 SizedBox(height: 20),
 
-                
                 ElevatedButton(
-                  onPressed: () {
-                    
-                  },
+                  onPressed: loginUser,
                   child: Text('Entrar'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFF2E3E84),
@@ -75,7 +150,6 @@ class LoginScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 10),
 
-                
                 TextButton(
                   onPressed: () {
                     Navigator.push(

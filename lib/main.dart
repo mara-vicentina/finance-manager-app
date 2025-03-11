@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
@@ -23,7 +24,6 @@ Map<int, Color> colorSwatch = {
 
 MaterialColor customPrimarySwatch = MaterialColor(0xFF2E3E84, colorSwatch);
 
-
 void main() {
   runApp(FinanceManagerApp());
 }
@@ -35,9 +35,9 @@ class FinanceManagerApp extends StatelessWidget {
       title: 'Finance Manager',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-         primarySwatch: customPrimarySwatch,
+        primarySwatch: customPrimarySwatch,
       ),
-      home: MainScreen(),
+      home: LoginScreen(),
     );
   }
 }
@@ -49,7 +49,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-
+  final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   final List<Widget> _screens = [
     HomeScreen(),
     ListTransactionsScreen(),
@@ -57,30 +57,34 @@ class _MainScreenState extends State<MainScreen> {
     ProfileScreen(),
   ];
 
- void _onItemTapped(int index) {
+  void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  void _confirmExit(BuildContext context) {
+  Future<void> logoutUser(BuildContext context) async {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("Sair do App"),
-        content: Text("Tem certeza que deseja sair?"),
+        title: Text("Sair da Conta"),
+        content: Text("Tem certeza que deseja sair da sua conta?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text("Cancelar"),
           ),
           TextButton(
-            onPressed: () {
-              if (Platform.isAndroid) {
-                SystemNavigator.pop(); // Fecha o app no Android
-              } else {
-                exit(0); // Fecha o app no iOS e Android
-              }
+            onPressed: () async {
+              await _secureStorage.delete(key: 'auth_token');
+
+              Navigator.of(ctx).pop();
+
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => LoginScreen()),
+                (Route<dynamic> route) => false,
+              );
             },
             child: Text("Sair", style: TextStyle(color: Colors.red)),
           ),
@@ -100,7 +104,7 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _selectedIndex,
         onTap: (index) {
           if (index == 4) {
-            _confirmExit(context);
+            logoutUser(context);
           } else {
             _onItemTapped(index);
           }
@@ -110,9 +114,9 @@ class _MainScreenState extends State<MainScreen> {
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Início'),
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Transações'),
-          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Relórios'),
+          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Relatórios'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
-          BottomNavigationBarItem(icon: Icon(Icons.exit_to_app,), label: 'Sair'),
+          BottomNavigationBarItem(icon: Icon(Icons.exit_to_app), label: 'Sair'),
         ],
       ),
     );

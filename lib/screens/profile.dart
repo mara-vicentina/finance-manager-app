@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../main.dart';
+import 'package:flutter_masked_text2/flutter_masked_text2.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -7,7 +11,81 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  TextEditingController _dateController = TextEditingController();
+   TextEditingController _dateController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final MaskedTextController _cpfController = MaskedTextController(mask: '000.000.000-00');
+  final MaskedTextController _cepController = MaskedTextController(mask: '00000-000');
+  final MaskedTextController _phoneController = MaskedTextController(mask: '(00) 00000-0000');
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _passwordConfirmationController = TextEditingController();
+
+  bool _updatePassword = false;
+  String? _formattedDate;
+  bool _obscurePassword = true;
+  bool _obscurePasswordConfirmation = true;
+
+  String _cleanText(String text) {
+    return text.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+ Future<void> editUser() async {
+    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user';
+
+     Map<String, dynamic> body = {
+      'name': _nameController.text,
+      'cpf': _cleanText(_cpfController.text),
+      'cep': _cleanText(_cepController.text),
+      'phone': _cleanText(_phoneController.text),
+      'birth_date': _formattedDate,
+    };
+
+    if (_updatePassword) {
+      body['password'] = _passwordController.text;
+      body['password_confirmation'] = _passwordConfirmationController.text;
+    }
+
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+
+    final responseData = jsonDecode(response.body);
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Usuário editado com sucesso!',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Color(0xFF2E3E84),
+        ),
+      );
+
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+    } else {
+      String errorMessage = responseData['message'] ?? 'Erro ao criar conta';
+
+      if (responseData.containsKey('errors') && responseData['errors'] is List) {
+        errorMessage += "\n" + responseData['errors'].join("\n");
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorMessage,
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
@@ -29,7 +107,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (picked != null) {
       setState(() {
-        _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
+        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+        _formattedDate = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
   }
@@ -77,51 +156,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    /// Nome
                     TextField(
+                      controller: _nameController,
                       cursorColor: Color(0xFF2E3E84),
                       decoration: InputDecoration(
                         labelText: "Nome",
+                        labelStyle: TextStyle(color: Color(0xFF2E3E84)),
                         prefixIcon: Icon(Icons.person, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// CPF
                     TextField(
+                      controller: _cpfController,
                       cursorColor: Color(0xFF2E3E84),
                       decoration: InputDecoration(
                         labelText: "CPF",
+                        labelStyle: TextStyle(color: Color(0xFF2E3E84)),
                         prefixIcon: Icon(Icons.badge, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// CEP
                     TextField(
+                      controller: _cepController,
                       cursorColor: Color(0xFF2E3E84),
                       decoration: InputDecoration(
                         labelText: "CEP",
+                        labelStyle: TextStyle(color: Color(0xFF2E3E84)),
                         prefixIcon: Icon(Icons.location_on, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Endereço
                     TextField(
+                      controller: _addressController,
                       cursorColor: Color(0xFF2E3E84),
                       decoration: InputDecoration(
                         labelText: "Endereço Completo",
+                        labelStyle: TextStyle(color: Color(0xFF2E3E84)),
                         prefixIcon: Icon(Icons.home, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Data de Nascimento
+                    TextField(
+                      controller: _phoneController,
+                      cursorColor: Color(0xFF2E3E84),
+                      decoration: InputDecoration(
+                        labelText: "Telefone",
+                        labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                        prefixIcon: Icon(Icons.phone, color: Color(0xFF2E3E84)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
                     TextField(
                       controller: _dateController,
                       cursorColor: Color(0xFF2E3E84),
@@ -129,51 +248,116 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onTap: () => _selectDate(context),
                       decoration: InputDecoration(
                         labelText: 'Data de Nascimento',
+                        labelStyle: TextStyle(color: Color(0xFF2E3E84)),
                         prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Email
                     TextField(
+                      controller: _emailController,
+                      readOnly: true,
                       cursorColor: Color(0xFF2E3E84),
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.grey[300],
                         labelText: "Email",
-                        prefixIcon: Icon(Icons.email, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                        prefixIcon: Icon(Icons.email, color: Colors.grey),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Senha
-                    TextField(
-                      cursorColor: Color(0xFF2E3E84),
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: "Senha",
-                        prefixIcon: Icon(Icons.lock, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _updatePassword,
+                          activeColor: Color(0xFF2E3E84),
+                          onChanged: (value) {
+                            setState(() {
+                              _updatePassword = value!;
+                            });
+                          },
+                        ),
+                        Text("Atualizar senha"),
+                      ],
                     ),
-                    SizedBox(height: 10),
 
-                    /// Confirmar Senha
-                    TextField(
-                      cursorColor: Color(0xFF2E3E84),
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: "Confirmar Senha",
-                        prefixIcon: Icon(Icons.lock_outline, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    if (_updatePassword) ...[
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        cursorColor: Color(0xFF2E3E84),
+                        decoration: InputDecoration(
+                          labelText: "Senha",
+                          labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                          prefixIcon: Icon(Icons.lock, color: Color(0xFF2E3E84)),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off : Icons.visibility, 
+                              color: Color(0xFF2E3E84),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                          ),
+                        ),
                       ),
-                    ),
+                      SizedBox(height: 10),
+
+                      TextField(
+                        controller: _passwordConfirmationController,
+                        obscureText: _obscurePasswordConfirmation,
+                        cursorColor: Color(0xFF2E3E84),
+                        decoration: InputDecoration(
+                          labelText: "Confirmar Senha",
+                          labelStyle: TextStyle(color: Color(0xFF2E3E84)),
+                          prefixIcon: Icon(Icons.lock_outline, color: Color(0xFF2E3E84)),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePasswordConfirmation ? Icons.visibility_off : Icons.visibility, 
+                              color: Color(0xFF2E3E84),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePasswordConfirmation = !_obscurePasswordConfirmation;
+                              });
+                            },
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ],
                     SizedBox(height: 20),
 
-                    /// Botão Editar
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: editUser,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF2E3E84),
                         foregroundColor: Colors.white,

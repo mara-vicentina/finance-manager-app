@@ -1,34 +1,98 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AddTransactionScreen extends StatefulWidget {
-  final Function(String, double, String, DateTime) onAddTransaction;
-
-  AddTransactionScreen({required this.onAddTransaction});
 
   @override
   _AddTransactionScreenState createState() => _AddTransactionScreenState();
 }
 
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
-  final _titleController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
   final _amountController = TextEditingController();
-  TextEditingController _dateController = TextEditingController();
-  String _selectedCategory = 'Alimentação';
-  String _selectedStatusPayment = 'Pago';
-  String _selectedPaymentMethod = 'Dinheiro';
+  final TextEditingController _dateController = TextEditingController();
+  int _selectedType = 0;
+  int _selectedCategory = 1;
+  int _selectedStatusPayment = 1;
+  int _selectedPaymentMethod = 1;
   DateTime _selectedDate = DateTime.now();
 
-  void _submitData() {
-    final enteredTitle = _titleController.text;
-    final enteredAmount = double.tryParse(_amountController.text) ?? 0;
+  final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
-    if (enteredTitle.isEmpty || enteredAmount <= 0) {
+  String? _formattedDate;
+
+  Future<void> createTransaction() async {
+    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/transaction';
+
+    String? token = await _secureStorage.read(key: 'auth_token');
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Erro: Token de autenticação não encontrado!',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    widget.onAddTransaction(enteredTitle, enteredAmount, _selectedCategory, _selectedDate);
-    Navigator.of(context).pop();
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'type': _selectedType,
+        'description': _titleController.text,
+        'value': _parseDouble(_amountController.text),
+        'transaction_date': _formattedDate,
+        'category': _selectedCategory,
+        'payment_method': _selectedPaymentMethod,
+        'payment_status': _selectedStatusPayment,
+      }),
+    );
+
+    final responseData = jsonDecode(response.body);
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Transação registrada com sucesso!',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Color(0xFF2E3E84),
+        ),
+      );
+
+      Navigator.pop(context);
+    } else {
+      String errorMessage = responseData['message'] ?? 'Erro ao criar transação';
+
+      if (responseData.containsKey('errors') && responseData['errors'] is List) {
+        errorMessage += "\n" + responseData['errors'].join("\n");
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorMessage,
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -51,8 +115,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     if (picked != null) {
       setState(() {
-        _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
+        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+        _formattedDate = DateFormat('yyyy-MM-dd').format(picked);
       });
+    }
+  }
+
+  String _parseDouble(String value) {
+    try {
+      double parsedValue = double.parse(value.replaceAll(',', '.')); // Substitui ',' por '.' se necessário
+      return parsedValue.toStringAsFixed(2); // Formata para duas casas decimais
+    } catch (e) {
+      return "0.00"; // Retorna um valor padrão em formato correto
     }
   }
 
@@ -77,116 +151,164 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    /// Tipo da Transação
-                    TextField(
-                      cursorColor: Color(0xFF2E3E84),
+                    DropdownButtonFormField<int>(
+                      value: _selectedType,
+                       onChanged: (int? newValue) {
+                        setState(() {
+                          _selectedType = newValue!;
+                        });
+                      },
+                      items: [
+                        DropdownMenuItem(value: 0, child: Text("Entrada")),
+                        DropdownMenuItem(value: 1, child: Text("Saída")),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Tipo da Transação',
-                        prefixIcon: Icon(Icons.swap_horiz, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        prefixIcon: Icon(Icons.category, color: Color(0xFF2E3E84)),
+                        focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                          ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Valor da Transação
                     TextField(
                       controller: _amountController,
-                      cursorColor: Color(0xFF2E3E84),
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')), // Apenas números e um ponto
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Valor (R\$)',
                         prefixIcon: Icon(Icons.attach_money, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Categoria
-                    DropdownButtonFormField<String>(
+                    DropdownButtonFormField<int>(
                       value: _selectedCategory,
                       onChanged: (newValue) {
                         setState(() {
                           _selectedCategory = newValue!;
                         });
                       },
-                      items: ['Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Outros']
-                          .map((category) => DropdownMenuItem(value: category, child: Text(category)))
-                          .toList(),
+                      items: [
+                        DropdownMenuItem(value: 1, child: Text("Alimentação")),
+                        DropdownMenuItem(value: 2, child: Text("Transporte")),
+                        DropdownMenuItem(value: 3, child: Text("Lazer")),
+                        DropdownMenuItem(value: 4, child: Text("Saúde")),
+                        DropdownMenuItem(value: 5, child: Text("Outros")),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Categoria',
                         prefixIcon: Icon(Icons.category, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                          ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Data da Transação
                     TextField(
                       controller: _dateController,
                       cursorColor: Color(0xFF2E3E84),
-                      readOnly: true,
                       onTap: () => _selectDate(context),
                       decoration: InputDecoration(
                         labelText: 'Data da Transação',
                         prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Descrição
                     TextField(
                       controller: _titleController,
                       cursorColor: Color(0xFF2E3E84),
                       decoration: InputDecoration(
                         labelText: 'Descrição',
                         prefixIcon: Icon(Icons.description, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Forma de Pagamento
-                    DropdownButtonFormField<String>(
+                    DropdownButtonFormField<int>(
                       value: _selectedPaymentMethod,
                       onChanged: (newValue) {
                         setState(() {
                           _selectedPaymentMethod = newValue!;
                         });
                       },
-                      items: ['Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'PIX', 'Outros']
-                          .map((category) => DropdownMenuItem(value: category, child: Text(category)))
-                          .toList(),
+                      items: [
+                        DropdownMenuItem(value: 1, child: Text("Dinheiro")),
+                        DropdownMenuItem(value: 2, child: Text("Cartão de Crédito")),
+                        DropdownMenuItem(value: 3, child: Text("Cartão de Débito")),
+                        DropdownMenuItem(value: 4, child: Text("PIX")),
+                        DropdownMenuItem(value: 5, child: Text("Outros")),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Forma de Pagamento',
                         prefixIcon: Icon(Icons.payment, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
 
-                    /// Status do Pagamento
-                    DropdownButtonFormField<String>(
+                    DropdownButtonFormField<int>(
                       value: _selectedStatusPayment,
                       onChanged: (newValue) {
                         setState(() {
                           _selectedStatusPayment = newValue!;
                         });
                       },
-                      items: ['Pago', 'Pendente', 'Parcelado', 'Outros']
-                          .map((category) => DropdownMenuItem(value: category, child: Text(category)))
-                          .toList(),
+                      items: [
+                        DropdownMenuItem(value: 1, child: Text("Pago")),
+                        DropdownMenuItem(value: 2, child: Text("Pendente")),
+                        DropdownMenuItem(value: 3, child: Text("Parcelado")),
+                        DropdownMenuItem(value: 4, child: Text("Outros")),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Status do Pagamento',
                         prefixIcon: Icon(Icons.check_circle, color: Color(0xFF2E3E84)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                        ),
                       ),
                     ),
                     SizedBox(height: 20),
 
-                    /// Botão Salvar
                     ElevatedButton(
-                      onPressed: _submitData,
+                      onPressed: createTransaction,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF2E3E84),
                         foregroundColor: Colors.white,

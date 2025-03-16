@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 import '../main.dart';
 import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -11,7 +13,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-   TextEditingController _dateController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final MaskedTextController _cpfController = MaskedTextController(mask: '000.000.000-00');
@@ -20,6 +22,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordConfirmationController = TextEditingController();
+
+  final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   bool _updatePassword = false;
   String? _formattedDate;
@@ -30,14 +34,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return text.replaceAll(RegExp(r'[^0-9]'), '');
   }
 
- Future<void> editUser() async {
-    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user';
+  @override
+  void initState() {
+    super.initState();
+    _getUserData();
+  }
 
-     Map<String, dynamic> body = {
+  Future<void> _getUserData() async {
+    String? token = await _secureStorage.read(key: 'auth_token');
+    String? user_id = await _secureStorage.read(key: 'user_id');
+
+    if (token == null || user_id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: Token ou ID do usuário não encontrado!', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user/$user_id';
+    print("Fetching user data from: $url"); // Debugging
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print("Response status: ${response.statusCode}");
+      print("Response body: ${response.body}"); // Debugging
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body)['data'];
+
+        setState(() {
+          _nameController.text = responseData['name'] ?? '';
+          _cpfController.text = responseData['cpf'] ?? '';
+          _cepController.text = responseData['cep'] ?? '';
+          _phoneController.text = responseData['phone_number'] ?? '';
+          _emailController.text = responseData['email'] ?? '';
+          _addressController.text = responseData['address'] ?? '';
+
+          if (responseData['birth_date'] != null) {
+            _formattedDate = responseData['birth_date'];
+            _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.parse(responseData['birth_date']));
+          } else {
+            _formattedDate = '';
+            _dateController.text = '';
+          }
+        });
+
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao obter dados do usuário!', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print("Erro na requisição: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao conectar com o servidor!', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> editUser() async {
+    String? token = await _secureStorage.read(key: 'auth_token');
+    String? user_id = await _secureStorage.read(key: 'user_id');
+
+    if (token == null || user_id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: Token ou ID do usuário não encontrado!', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user/$user_id';
+
+    Map<String, dynamic> body = {
       'name': _nameController.text,
       'cpf': _cleanText(_cpfController.text),
       'cep': _cleanText(_cepController.text),
-      'phone': _cleanText(_phoneController.text),
+      'address': _addressController.text,
+      'phone_number': _cleanText(_phoneController.text),
       'birth_date': _formattedDate,
     };
 
@@ -47,15 +140,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
 
-    final response = await http.post(
+    final response = await http.put(
       Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: jsonEncode(body),
     );
 
     final responseData = jsonDecode(response.body);
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -68,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
     } else {
-      String errorMessage = responseData['message'] ?? 'Erro ao criar conta';
+      String errorMessage = responseData['message'] ?? 'Erro ao editar usuário';
 
       if (responseData.containsKey('errors') && responseData['errors'] is List) {
         errorMessage += "\n" + responseData['errors'].join("\n");
@@ -86,6 +183,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
+  Future<void> deleteUser() async {
+    String? token = await _secureStorage.read(key: 'auth_token');
+    String? user_id = await _secureStorage.read(key: 'user_id');
+
+    if (token == null || user_id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: Token ou ID do usuário não encontrado!', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user/$user_id';
+
+    try {
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Conta excluída com sucesso!', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Apagar os dados armazenados e redirecionar para a tela de login
+        await _secureStorage.deleteAll();
+        
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()), // Substitua pela sua tela de login
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        final responseData = jsonDecode(response.body);
+        String errorMessage = responseData['message'] ?? 'Erro ao excluir a conta';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage, style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print("Erro ao excluir a conta: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao conectar com o servidor!', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _confirmDeleteAccount() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Confirmar Exclusão"),
+          content: Text("Tem certeza de que deseja excluir sua conta? Essa ação não pode ser desfeita."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Cancelar", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                deleteUser();
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white,),
+              child: Text("Excluir"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   Future<void> _selectDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
@@ -244,7 +434,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     TextField(
                       controller: _dateController,
                       cursorColor: Color(0xFF2E3E84),
-                      readOnly: true,
                       onTap: () => _selectDate(context),
                       decoration: InputDecoration(
                         labelText: 'Data de Nascimento',
@@ -365,6 +554,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       child: Text("Editar", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+
+                    TextButton(
+                      onPressed: _confirmDeleteAccount,
+                      child: Text("Excluir minha conta"),
+                      style: ButtonStyle(
+                        foregroundColor: MaterialStateProperty.all(Color(0xFF2E3E84)),
+                        textStyle: MaterialStateProperty.all(
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        overlayColor: MaterialStateProperty.all(Colors.transparent), // Remove o efeito de hover
+                      ),
                     ),
                   ],
                 ),

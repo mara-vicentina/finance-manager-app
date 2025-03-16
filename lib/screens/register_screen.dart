@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../main.dart';
+import 'login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -48,7 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
     } else {
       String errorMessage = responseData['message'] ?? 'Erro ao criar conta';
 
@@ -246,9 +246,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Navigator.pop(context);
                   },
                   child: Text('Já tem uma conta? Entrar'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Color(0xFF2E3E84),
-                    textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: ButtonStyle(
+                    foregroundColor: MaterialStateProperty.all(Color(0xFF2E3E84)),
+                    textStyle: MaterialStateProperty.all(
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    overlayColor: MaterialStateProperty.all(Colors.transparent), // Remove o efeito de hover
                   ),
                 ),
               ],

@@ -72,9 +72,9 @@ class _MainScreenState extends State<MainScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text("Cancelar"),
+            child: Text("Cancelar", style: TextStyle(color: Colors.grey)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               await _secureStorage.delete(key: 'auth_token');
 
@@ -86,7 +86,8 @@ class _MainScreenState extends State<MainScreen> {
                 (Route<dynamic> route) => false,
               );
             },
-            child: Text("Sair", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white,),
+            child: Text("Sair"),
           ),
         ],
       ),

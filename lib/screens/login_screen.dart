@@ -32,7 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final responseData = jsonDecode(response.body);
 
     if (response.statusCode == 200) {
-      await _secureStorage.write(key: 'auth_token', value: responseData['token']);
+      await _secureStorage.write(key: 'auth_token', value: responseData['access_token']);
+      await _secureStorage.write(key: 'user_id', value: responseData['user_id'].toString());
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -158,9 +159,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   },
                   child: Text('Criar uma conta'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Color(0xFF2E3E84),
-                    textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: ButtonStyle(
+                    foregroundColor: MaterialStateProperty.all(Color(0xFF2E3E84)),
+                    textStyle: MaterialStateProperty.all(
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    overlayColor: MaterialStateProperty.all(Colors.transparent), // Remove o efeito de hover
                   ),
                 ),
               ],

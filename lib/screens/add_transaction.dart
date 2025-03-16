@@ -5,6 +5,30 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    String newText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (newText.isEmpty) {
+      return TextEditingValue(
+        text: "0.00",
+        selection: TextSelection.collapsed(offset: 4),
+      );
+    }
+
+    double value = double.parse(newText) / 100;
+
+    String formattedValue = value.toStringAsFixed(2);
+
+    return TextEditingValue(
+      text: formattedValue,
+      selection: TextSelection.collapsed(offset: formattedValue.length),
+    );
+  }
+}
+
 class AddTransactionScreen extends StatefulWidget {
 
   @override
@@ -74,7 +98,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ),
       );
 
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } else {
       String errorMessage = responseData['message'] ?? 'Erro ao criar transação';
 
@@ -123,10 +147,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   String _parseDouble(String value) {
     try {
-      double parsedValue = double.parse(value.replaceAll(',', '.')); // Substitui ',' por '.' se necessário
-      return parsedValue.toStringAsFixed(2); // Formata para duas casas decimais
+      double parsedValue = double.parse(value.replaceAll(',', '.'));
+      return parsedValue.toStringAsFixed(2);
     } catch (e) {
-      return "0.00"; // Retorna um valor padrão em formato correto
+      return "0.00";
     }
   }
 
@@ -177,10 +201,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
                     TextField(
                       controller: _amountController,
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')), // Apenas números e um ponto
-                      ],
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [CurrencyInputFormatter()], 
                       decoration: InputDecoration(
                         labelText: 'Valor (R\$)',
                         prefixIcon: Icon(Icons.attach_money, color: Color(0xFF2E3E84)),
@@ -265,7 +287,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         DropdownMenuItem(value: 1, child: Text("Dinheiro")),
                         DropdownMenuItem(value: 2, child: Text("Cartão de Crédito")),
                         DropdownMenuItem(value: 3, child: Text("Cartão de Débito")),
-                        DropdownMenuItem(value: 4, child: Text("PIX")),
+                        DropdownMenuItem(value: 4, child: Text("Pix")),
                         DropdownMenuItem(value: 5, child: Text("Outros")),
                       ],
                       decoration: InputDecoration(

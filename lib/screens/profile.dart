@@ -307,32 +307,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Image.asset(
-              'images/logo.png',
-              height: 70,
-            ),
-
-            Expanded(
-              child: Center(
-                child: Text(
-                  "Meus Dados",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-
-            IconButton(
-              icon: Icon(Icons.settings, color: Colors.white), // Ícone de configurações (pode trocar)
-              onPressed: () {
-                // Adicione a ação desejada aqui
-              },
-            ),
-          ],
-        ),
-        backgroundColor: Color(0xFF25316C),
+        automaticallyImplyLeading: false,
+        title: Text("Meus Dados", style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        backgroundColor: Color(0xFF2E3E84),
       ),
       body: Center(
         child: SingleChildScrollView(

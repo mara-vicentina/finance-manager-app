@@ -98,7 +98,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Criar Conta')),
+      appBar: AppBar(
+        title: Text("Criar Conta", style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        backgroundColor: Color(0xFF2E3E84),
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
@@ -109,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Image.asset(
-                  'images/finance.png',
+                  'assets/images/finance.png',
                   width: 230,
                   height: 230,
                 ),

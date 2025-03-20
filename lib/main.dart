@@ -36,6 +36,16 @@ class FinanceManagerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: customPrimarySwatch,
+        primaryColor: Color(0xFF2E3E84),
+        colorScheme: ColorScheme.light(
+          primary: Color(0xFF2E3E84),
+          secondary: Color(0xFF2E3E84),
+        ),
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: Color(0xFF2E3E84),
+          selectionColor: Color(0xFF2E3E84).withOpacity(0.5),
+          selectionHandleColor: Color(0xFF2E3E84),
+        ),
       ),
       home: LoginScreen(),
     );
@@ -50,15 +60,28 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
-  final List<Widget> _screens = [
-    HomeScreen(),
-    ListTransactionsScreen(),
-    ReportsScreen(),
-    ProfileScreen(),
-  ];
+   late Key _homeScreenKey;
+  late List<Widget> _screens;
+
+
+  @override
+  void initState() {
+    super.initState();
+    _homeScreenKey = UniqueKey(); // Inicializa a Key corretamente
+    _screens = [
+      HomeScreen(key: _homeScreenKey),
+      ListTransactionsScreen(),
+      ReportsScreen(),
+      ProfileScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
+       if (index == 0) {
+        _homeScreenKey = UniqueKey(); // Gera uma nova Key para recriar a HomeScreen
+        _screens[0] = HomeScreen(key: _homeScreenKey);
+      }
       _selectedIndex = index;
     });
   }

@@ -54,7 +54,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
         super.initState();
         _transactionId = widget.transaction['id'];
         _titleController = TextEditingController(text: widget.transaction['descricao']);
-        _amountController = TextEditingController(text: widget.transaction['valor'].toString());
+        _amountController = TextEditingController(text: widget.transaction['valor'].toStringAsFixed(2));
         _selectedType = widget.transaction['tipo'];
         _selectedCategory = widget.transaction['categoria'];
         _selectedStatusPayment = widget.transaction['status_pagamento'];
@@ -235,10 +235,10 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                                                 });
                                             },
                                             items: [
-                                                DropdownMenuItem(value: 1, child: Text("Alimentação")),
-                                                DropdownMenuItem(value: 2, child: Text("Transporte")),
-                                                DropdownMenuItem(value: 3, child: Text("Lazer")),
-                                                DropdownMenuItem(value: 4, child: Text("Saúde")),
+                                                DropdownMenuItem(value: 1, child: Text("Receitas")),
+                                                DropdownMenuItem(value: 2, child: Text("Despesas")),
+                                                DropdownMenuItem(value: 3, child: Text("Investimentos")),
+                                                DropdownMenuItem(value: 4, child: Text("Adicionais")),
                                                 DropdownMenuItem(value: 5, child: Text("Outros")),
                                             ],
                                             decoration: InputDecoration(

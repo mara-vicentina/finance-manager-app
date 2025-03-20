@@ -25,10 +25,10 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
   final List<Map<String, dynamic>> _transactions = [];
 
   final Map<int, String> _categoryMap = {
-    1: "Alimentação",
-    2: "Transporte",
-    3: "Lazer",
-    4: "Saúde",
+    1: "Receitas",
+    2: "Despesas",
+    3: "Investimentos",
+    4: "Adicionais",
     5: "Outros",
   };
 
@@ -238,192 +238,164 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Image.asset(
-              'images/logo.png',
-              height: 70,
-            ),
-
-            Expanded(
-              child: Center(
-                child: Text(
-                  "Últimas Transações",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-
-            IconButton(
-              icon: Icon(Icons.settings, color: Colors.white),
-              onPressed: () {
-              },
-            ),
-          ],
-        ),
-        backgroundColor: Color(0xFF25316C),
+        automaticallyImplyLeading: false,
+        title: Text("Últimas Transações", style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        backgroundColor: Color(0xFF2E3E84),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _startDateController,
-                    onTap: () => _selectDate(context, true),
-                    decoration: InputDecoration(
-                      labelText: 'Data de Início',
-                      prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF2E3E84)),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        "Filtros",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 10),
+                      SizedBox(height: 20),
 
-                Expanded(
-                  child: TextField(
-                    controller: _endDateController,
-                    onTap: () => _selectDate(context, false),
-                    decoration: InputDecoration(
-                      labelText: 'Data de Finalização',
-                      prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF2E3E84)),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                      TextField(
+                        controller: _startDateController,
+                        onTap: () => _selectDate(context, true),
+                        decoration: InputDecoration(
+                          labelText: 'Data de Início',
+                          prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF2E3E84)),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                          ),
+                        ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                      SizedBox(height: 16),
+                      TextField(
+                        controller: _endDateController,
+                        onTap: () => _selectDate(context, false),
+                        decoration: InputDecoration(
+                          labelText: 'Data de Finalização',
+                          prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF2E3E84)),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 10),
-
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await getTransaction();
-                    },
-                    icon: Icon(Icons.search, color: Colors.white),
-                    label: Text("Buscar", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF2E3E84),
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      SizedBox(height: 16),
+                      SizedBox(
+                        height: 50,
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            await getTransaction();
+                          },
+                          icon: Icon(Icons.search, color: Colors.white),
+                          label: Text("Buscar", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF2E3E84),
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
-
-            Row(
-              children: [
-                Checkbox(
-                  value: _moreFilters,
-                  activeColor: Color(0xFF2E3E84),
-                  onChanged: (value) {
-                    setState(() {
-                      _moreFilters = value!;
-                    });
-                  },
-                ),
-                Text("Exibir mais filtros"),
-              ],
-            ),
-            SizedBox(height: 10),
-
-            if (_moreFilters) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      value: _selectedType,
-                      onChanged: (int? newValue) {
-                        setState(() {
-                          _selectedType = newValue!;
-                        });
-                      },
-                      items: [
-                        DropdownMenuItem(value: 0, child: Text("Entrada")),
-                        DropdownMenuItem(value: 1, child: Text("Saída")),
+                      SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _moreFilters,
+                            activeColor: Color(0xFF2E3E84),
+                            onChanged: (value) {
+                              setState(() {
+                                _moreFilters = value!;
+                              });
+                            },
+                          ),
+                          Text("Exibir mais filtros"),
+                        ],
+                      ),
+                      if (_moreFilters) ...[
+                        SizedBox(height: 10),
+                        DropdownButtonFormField<int>(
+                          value: _selectedType,
+                          onChanged: (int? newValue) {
+                            setState(() {
+                              _selectedType = newValue!;
+                            });
+                          },
+                          items: [
+                            DropdownMenuItem(value: 0, child: Text("Entrada")),
+                            DropdownMenuItem(value: 1, child: Text("Saída")),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: 'Tipo da Transação',
+                            prefixIcon: Icon(Icons.category, color: Color(0xFF2E3E84)),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        DropdownButtonFormField<int>(
+                          value: _selectedCategory,
+                          onChanged: (newValue) {
+                            setState(() {
+                              _selectedCategory = newValue!;
+                            });
+                          },
+                          items: _categoryMap.entries
+                              .map((entry) => DropdownMenuItem(
+                                    value: entry.key,
+                                    child: Text(entry.value),
+                                  ))
+                              .toList(),
+                          decoration: InputDecoration(
+                            labelText: 'Categoria',
+                            prefixIcon: Icon(Icons.category, color: Color(0xFF2E3E84)),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
+                            ),
+                          ),
+                        ),
                       ],
-                      decoration: InputDecoration(
-                        labelText: 'Tipo da Transação',
-                        prefixIcon: Icon(Icons.category, color: Color(0xFF2E3E84)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
-                        ),
-                      ),
-                    ),
+                    ],
                   ),
-                  SizedBox(width: 10),
-
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      value: _selectedCategory,
-                      onChanged: (newValue) {
-                        setState(() {
-                          _selectedCategory = newValue!;
-                        });
-                      },
-                      items: [
-                        DropdownMenuItem(value: 1, child: Text("Alimentação")),
-                        DropdownMenuItem(value: 2, child: Text("Transporte")),
-                        DropdownMenuItem(value: 3, child: Text("Lazer")),
-                        DropdownMenuItem(value: 4, child: Text("Saúde")),
-                        DropdownMenuItem(value: 5, child: Text("Outros")),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: 'Categoria',
-                        prefixIcon: Icon(Icons.category, color: Color(0xFF2E3E84)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 2.0),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF2E3E84), width: 1.5),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 118,
-                  ),
-                ],
+                ),
               ),
-            ],
-            SizedBox(height: 10),
-
-            Expanded(
-              child: _transactions.isEmpty
-                ? Center(
+              SizedBox(height: 16),
+              if (_transactions.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
                     child: Text(
                       "Nenhuma transação registrada!",
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
                     ),
-                  )
-                : ListView.builder(
-                  itemCount: _transactions.length,
-                  itemBuilder: (context, index) {
-                    final transaction = _transactions[index];
-
+                  ),
+                )
+              else
+                Column(
+                  children: _transactions.map((transaction) {
                     bool isEntrada = transaction["tipo"] == 0;
                     Color cardColor = isEntrada ? Colors.green : Colors.red;
-
                     String categoria = _categoryMap[transaction["categoria"]] ?? "Outros";
 
                     return Card(
@@ -437,8 +409,11 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        title: Text("$categoria", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,),),
-                        subtitle: Text("${transaction["data"]}"),
+                        title: Text(
+                          categoria,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(transaction["data"]),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -446,7 +421,7 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
                               "R\$ ${transaction["valor"].toStringAsFixed(2)}",
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: cardColor),
                             ),
-                            SizedBox(width: 10), 
+                            SizedBox(width: 10),
                             PopupMenuButton<String>(
                               offset: Offset(0, 40),
                               onSelected: (value) async {
@@ -454,16 +429,7 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
                                   final updatedTransaction = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => EditTransactionScreen(transaction: {
-                                        'id': transaction['id'],
-                                        'tipo': transaction['tipo'],
-                                        'valor': transaction['valor'].toStringAsFixed(2),
-                                        'categoria': transaction['categoria'],
-                                        'data': transaction['data'],
-                                        'descricao': transaction['descricao'],
-                                        'metodo_pagamento': transaction['metodo_pagamento'],
-                                        'status_pagamento': transaction['status_pagamento'],
-                                      }),
+                                      builder: (context) => EditTransactionScreen(transaction: transaction),
                                     ),
                                   );
 
@@ -491,42 +457,25 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
                                   );
 
                                   if (confirmDelete) {
-                                     await _deleteTransaction(transaction['id']);
+                                    await _deleteTransaction(transaction['id']);
                                   }
                                 }
                               },
                               itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, color: Color(0xFF2E3E84)),
-                                      SizedBox(width: 8),
-                                      Text("Editar"),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.delete, color: Colors.red),
-                                      SizedBox(width: 8),
-                                      Text("Remover"),
-                                    ],
-                                  ),
-                                ),
+                                PopupMenuItem(value: 'edit', child: Text("Editar")),
+                                PopupMenuItem(value: 'delete', child: Text("Remover")),
                               ],
-                              icon: Icon(Icons.more_vert),
                             ),
-                          ]
+                          ],
                         ),
                       ),
                     );
-                  },
+                  }).toList(),
                 ),
-            ),
-          ],
+              SizedBox(height: 36),
+
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(

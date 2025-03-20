@@ -224,10 +224,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         });
                       },
                       items: [
-                        DropdownMenuItem(value: 1, child: Text("Alimentação")),
-                        DropdownMenuItem(value: 2, child: Text("Transporte")),
-                        DropdownMenuItem(value: 3, child: Text("Lazer")),
-                        DropdownMenuItem(value: 4, child: Text("Saúde")),
+                        DropdownMenuItem(value: 1, child: Text("Receitas")),
+                        DropdownMenuItem(value: 2, child: Text("Despesas")),
+                        DropdownMenuItem(value: 3, child: Text("Investimentos")),
+                        DropdownMenuItem(value: 4, child: Text("Adicionais")),
                         DropdownMenuItem(value: 5, child: Text("Outros")),
                       ],
                       decoration: InputDecoration(

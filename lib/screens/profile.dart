@@ -55,7 +55,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user/$user_id';
-    print("Fetching user data from: $url"); // Debugging
 
     try {
       final response = await http.get(
@@ -66,9 +65,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'Authorization': 'Bearer $token',
         },
       );
-
-      print("Response status: ${response.statusCode}");
-      print("Response body: ${response.body}"); // Debugging
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body)['data'];
@@ -218,12 +214,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
 
-        // Apagar os dados armazenados e redirecionar para a tela de login
         await _secureStorage.deleteAll();
         
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen()), // Substitua pela sua tela de login
+          MaterialPageRoute(builder: (context) => LoginScreen()),
           (Route<dynamic> route) => false,
         );
       } else {
@@ -542,7 +537,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         textStyle: MaterialStateProperty.all(
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        overlayColor: MaterialStateProperty.all(Colors.transparent), // Remove o efeito de hover
+                        overlayColor: MaterialStateProperty.all(Colors.transparent),
                       ),
                     ),
                   ],

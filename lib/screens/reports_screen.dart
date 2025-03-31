@@ -67,7 +67,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  /// Converte os valores String em double
   double _parseValue(String value) {
     return double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
   }
@@ -115,15 +114,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
       });
 
       if (response.statusCode == 200) {
-        // Obtém o diretório para salvar o arquivo
         final directory = await getApplicationDocumentsDirectory();
         final filePath = "${directory.path}/relatorio.xlsx";
 
-        // Salva o arquivo localmente
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
 
-        // Abre o arquivo
         OpenFilex.open(filePath);
       } else {
         print("Erro ao baixar o relatório: ${response.statusCode}");
@@ -266,8 +262,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
               SizedBox(height: 16),
 
-
-              /// **Gráfico de Barras**
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -284,9 +278,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Container(
-                           padding: EdgeInsets.all(5),
-                          width: 600, // Define uma largura fixa para o gráfico
-                          height: 300, // Mantém a altura do gráfico fixa
+                          padding: EdgeInsets.all(5),
+                          width: 600,
+                          height: 300,
                           child: BarChart(
                             BarChartData(
                               alignment: BarChartAlignment.spaceAround,
@@ -297,19 +291,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 return BarChartGroupData(
                                   x: index,
                                   barRods: [
-                                    /// Receita (Incomes)
                                     BarChartRodData(
                                       toY: _parseValue(data["incomes"]),
                                       color: Colors.green,
                                       width: 12,
                                     ),
-                                    /// Despesas (Expenses)
                                     BarChartRodData(
                                       toY: _parseValue(data["expenses"]),
                                       color: Colors.red,
                                       width: 12,
                                     ),
-                                    /// Total
                                     BarChartRodData(
                                       toY: _parseValue(data["total"]),
                                       color: Colors.blue,
@@ -362,9 +353,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 10), // Espaço entre gráfico e legenda
+                      SizedBox(height: 10),
 
-                      /// **Legenda do Gráfico**
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -377,7 +367,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 20), // Adiciona espaço final para evitar corte ao rolar
+              SizedBox(height: 20),
             ],
           ),
         ),

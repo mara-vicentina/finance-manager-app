@@ -60,17 +60,19 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
-   late Key _homeScreenKey;
+  final ValueNotifier<bool> _refreshHomeNotifier = ValueNotifier<bool>(false);
   late List<Widget> _screens;
 
+  void _refreshHomeScreen() {
+    _refreshHomeNotifier.value = !_refreshHomeNotifier.value;
+  }
 
   @override
   void initState() {
     super.initState();
-    _homeScreenKey = UniqueKey(); // Inicializa a Key corretamente
     _screens = [
-      HomeScreen(key: _homeScreenKey),
-      ListTransactionsScreen(),
+      HomeScreen(refreshNotifier: _refreshHomeNotifier),
+      ListTransactionsScreen(onTransactionChanged: _refreshHomeScreen),
       ReportsScreen(),
       ProfileScreen(),
     ];
@@ -78,11 +80,9 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onItemTapped(int index) {
     setState(() {
-       if (index == 0) {
-        _homeScreenKey = UniqueKey(); // Gera uma nova Key para recriar a HomeScreen
-        _screens[0] = HomeScreen(key: _homeScreenKey);
-      }
-      _selectedIndex = index;
+       setState(() {
+        _selectedIndex = index;
+      });
     });
   }
 

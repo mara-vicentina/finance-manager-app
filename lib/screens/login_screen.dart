@@ -164,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textStyle: MaterialStateProperty.all(
                       TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    overlayColor: MaterialStateProperty.all(Colors.transparent), // Remove o efeito de hover
+                    overlayColor: MaterialStateProperty.all(Colors.transparent),
                   ),
                 ),
               ],

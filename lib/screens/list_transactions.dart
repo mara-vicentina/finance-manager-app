@@ -7,6 +7,10 @@ import 'add_transaction.dart';
 import 'edit_transaction.dart';
 
 class ListTransactionsScreen extends StatefulWidget {
+  final VoidCallback? onTransactionChanged;
+
+  ListTransactionsScreen({this.onTransactionChanged});
+  
   @override
   _ListTransactionsScreenState createState() => _ListTransactionsScreenState();
 }
@@ -58,6 +62,7 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
     );
 
     if (transactionAdded == true) {
+      widget.onTransactionChanged?.call(); 
       getTransaction();
     }
   }
@@ -183,6 +188,7 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
           ),
         );
 
+        widget.onTransactionChanged?.call();
         await getTransaction();
         setState(() {});
       } else {
@@ -434,6 +440,7 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
                                   );
 
                                   if (updatedTransaction != null) {
+                                    widget.onTransactionChanged?.call();
                                     await getTransaction();
                                     setState(() {});
                                   }

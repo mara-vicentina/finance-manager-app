@@ -6,7 +6,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  final ValueNotifier<bool> refreshNotifier;
+
+  HomeScreen({Key? key, required this.refreshNotifier}) : super(key: key);
   
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -20,7 +22,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? mesAtual;
   List<Map<String, dynamic>> resumoCategorias = [];
 
-  // Mapeamento das categorias por ID
   final Map<int, String> _categoryMap = {
     1: "Receitas",
     2: "Despesas",
@@ -43,6 +44,10 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime now = DateTime.now();
     mesAtual = DateFormat('MM-yyyy').format(now);
     getData();
+
+    widget.refreshNotifier.addListener(() {
+      getData();
+    });
   }
 
   Future<void> getData() async {
@@ -100,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// Card de Saldo Atual
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -112,7 +116,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(height: 5),
                       Text(
                         "R\$ ${saldoAtual.toStringAsFixed(2)}",
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: saldoAtual < 0 ? Colors.red : Colors.green, // Altera a cor com base no saldo
+                        ),
                       ),
                       Divider(),
                     ],
@@ -121,7 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: 20),
 
-              /// Card de Distribuição de Gastos por Categoria (Gráfico de Pizza)
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -133,12 +140,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         "Distribuição de Gastos por Categoria",
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 25),
+                      SizedBox(height: 10),
                       Container(
-                        height: 250,
+                        padding: EdgeInsets.all(5),
+                        height: 350,
                         child: Column(
                           children: [
-                            /// Gráfico de Pizza
                             Expanded(
                               flex: 2,
                               child: PieChart(
@@ -163,9 +170,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             SizedBox(width: 10),
-                             SizedBox(height: 25),
+                            SizedBox(height: 10),
 
-                            /// Legenda do gráfico
                             Wrap(
                               direction: Axis.vertical,
                               spacing: 8,
@@ -204,14 +210,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: 20),
 
-              /// Resumo de Gastos por Categoria
               Align(
                 alignment: Alignment.center,
                 child: Text("Gastos por Categoria no Mês Atual", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               SizedBox(height: 10),
 
-              /// Listagem de Gastos por Categoria (sem `Expanded`, agora rola com a tela toda)
               Column(
                 children: resumoCategorias.map((categoriaData) {
                   int categoriaId = categoriaData["category"];
@@ -240,7 +244,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: 20),
 
-              /// Mensagem Motivacional
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -253,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              SizedBox(height: 20), // Adiciona espaço no final para evitar corte ao rolar
+              SizedBox(height: 20),
             ],
           ),
         ),

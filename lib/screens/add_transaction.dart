@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/transaction_service.dart';
 
 class CurrencyInputFormatter extends TextInputFormatter {
   @override
@@ -39,6 +40,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final TextEditingController _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
+  final TransactionService _transactionService = TransactionService();
   int _selectedType = 0;
   int _selectedCategory = 1;
   int _selectedStatusPayment = 1;
@@ -50,68 +52,37 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   String? _formattedDate;
 
   Future<void> createTransaction() async {
-    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/transaction';
-
-    String? token = await _secureStorage.read(key: 'auth_token');
-
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Erro: Token de autenticação não encontrado!',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'type': _selectedType,
-        'description': _titleController.text,
-        'value': _parseDouble(_amountController.text),
-        'transaction_date': _formattedDate,
-        'category': _selectedCategory,
-        'payment_method': _selectedPaymentMethod,
-        'payment_status': _selectedStatusPayment,
-      }),
+    final result = await _transactionService.createTransaction(
+      type: _selectedType,
+      description: _titleController.text,
+      value: _parseDouble(_amountController.text),
+      transactionDate: _formattedDate,
+      category: _selectedCategory,
+      paymentMethod: _selectedPaymentMethod,
+      paymentStatus: _selectedStatusPayment,
     );
 
-    final responseData = jsonDecode(response.body);
+    final responseData = result['data'];
+    final statusCode = result['statusCode'];
 
-    if (response.statusCode == 201) {
+    if (statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Transação registrada com sucesso!',
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text('Transação registrada com sucesso!', style: TextStyle(color: Colors.white)),
           backgroundColor: Color(0xFF2E3E84),
         ),
       );
-
       Navigator.pop(context, true);
     } else {
       String errorMessage = responseData['message'] ?? 'Erro ao criar transação';
 
-      if (responseData.containsKey('errors') && responseData['errors'] is List) {
-        errorMessage += "\n" + responseData['errors'].join("\n");
+      if (responseData['errors'] is List) {
+        errorMessage += "\n" + (responseData['errors'] as List).join("\n");
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            errorMessage,
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text(errorMessage, style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 4),
         ),

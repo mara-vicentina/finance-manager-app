@@ -9,5 +9,5 @@ void main() {
     expect(find.byType(TextField), findsNWidgets(2));
     expect(find.text('Entrar'), findsOneWidget);
     expect(find.text('Criar uma conta'), findsOneWidget);
-  });
+  });
 }

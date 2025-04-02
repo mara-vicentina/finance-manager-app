@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'add_transaction.dart';
 import 'edit_transaction.dart';
+import '../services/transaction_service.dart';
 
 class ListTransactionsScreen extends StatefulWidget {
   final VoidCallback? onTransactionChanged;
@@ -19,6 +20,7 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _endDateController = TextEditingController();
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  final TransactionService _transactionService = TransactionService();
   int _selectedType = 0;
   int _selectedCategory = 1;
 
@@ -71,138 +73,71 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
     if (_formattedStartDate == null || _formattedEndDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Por favor, selecione as datas antes de buscar!',
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text('Por favor, selecione as datas antes de buscar!', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    String baseUrl = 'https://goldenrod-badger-186312.hostingersite.com/api/transactions';
+    final result = await _transactionService.getTransactions(
+      startDate: _formattedStartDate!,
+      endDate: _formattedEndDate!,
+      type: _moreFilters ? _selectedType : null,
+      category: _moreFilters ? _selectedCategory : null,
+    );
 
-    String? token = await _secureStorage.read(key: 'auth_token');
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro: Token de autenticação não encontrado!', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    final statusCode = result['statusCode'];
+    final responseData = result['data'];
 
-    Map<String, String> queryParams = {
-      'start_date': _formattedStartDate!,
-      'end_date': _formattedEndDate!,
-    };
+    if (statusCode == 200 && responseData['success'] == true && responseData['data'] is List) {
+      setState(() {
+        _transactions.clear();
+        for (var transaction in responseData["data"]) {
+          String originalDate = transaction['transaction_date'];
+          String formattedDate = "";
+          try {
+            DateTime parsedDate = DateTime.parse(originalDate);
+            formattedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
+          } catch (_) {
+            formattedDate = originalDate;
+          }
 
-    if (_moreFilters) {
-      queryParams['type'] = _selectedType.toString();
-      queryParams['category'] = _selectedCategory.toString();
-    }
-
-    Uri uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
-
-    try {
-      final response = await http.get(uri, headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      });
-
-      if (response.statusCode == 200) {
-        var responseData = jsonDecode(response.body);
-
-        if (responseData["success"] == true && responseData["data"] is List) {
-          setState(() {
-            _transactions.clear();
-            for (var transaction in responseData["data"]) {
-              String originalDate = transaction['transaction_date'];
-              String formattedDate = "";
-            
-              if (originalDate.isNotEmpty) {
-                try {
-                  DateTime parsedDate = DateTime.parse(originalDate);
-                  formattedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
-                } catch (e) {
-                  print("Erro ao formatar a data: $e");
-                  formattedDate = originalDate;
-                }
-              }
-
-              _transactions.add({
-                'id': transaction['id'], 
-                'tipo': transaction['type'], 
-                'valor': double.tryParse(transaction['value'].toString()) ?? 0.0, 
-                'categoria': transaction['category'], 
-                'data': formattedDate, 
-                'descricao': transaction['description'], 
-                'metodo_pagamento': transaction['payment_method'], 
-                'status_pagamento': transaction['payment_status'], 
-              });
-            }
+          _transactions.add({
+            'id': transaction['id'],
+            'tipo': transaction['type'],
+            'valor': double.tryParse(transaction['value'].toString()) ?? 0.0,
+            'categoria': transaction['category'],
+            'data': formattedDate,
+            'descricao': transaction['description'],
+            'metodo_pagamento': transaction['payment_method'],
+            'status_pagamento': transaction['payment_status'],
           });
-        } else {
-          print('Erro na resposta da API: ${responseData["message"] ?? "Erro desconhecido"}');
         }
-      } else {
-        print('Erro na requisição: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Erro ao fazer a requisição: $e');
+      });
+    } else {
+      print('Erro ao carregar transações: ${responseData["message"] ?? "Erro desconhecido"}');
     }
   }
 
   Future<void> _deleteTransaction(int transactionId) async {
-    String url = 'https://goldenrod-badger-186312.hostingersite.com/api/transaction/$transactionId';
+    final result = await _transactionService.deleteTransaction(transactionId);
+    final statusCode = result['statusCode'];
+    final responseData = result['data'];
 
-    String? token = await _secureStorage.read(key: 'auth_token');
-    if (token == null) {
+    if (statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro: Token de autenticação não encontrado!', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.red,
+          content: Text('Transação removida com sucesso!', style: TextStyle(color: Colors.white)),
+          backgroundColor: Color(0xFF2E3E84),
         ),
       );
-      return;
-    }
-
-    try {
-      final response = await http.delete(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      final responseData = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Transação removida com sucesso!', style: TextStyle(color: Colors.white)),
-            backgroundColor: Color(0xFF2E3E84),
-          ),
-        );
-
-        widget.onTransactionChanged?.call();
-        await getTransaction();
-        setState(() {});
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao remover a transação: ${responseData['message']}', style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
+      widget.onTransactionChanged?.call();
+      await getTransaction();
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao conectar ao servidor: $e', style: TextStyle(color: Colors.white)),
+          content: Text('Erro ao remover a transação: ${responseData['message'] ?? "Erro desconhecido"}', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );

@@ -4,6 +4,7 @@ import '../main.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -14,33 +15,23 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  final AuthService _authService = AuthService();
 
   bool _obscurePassword = true;
 
   Future<void> loginUser() async {
-    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/login';
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': _emailController.text,
-        'password': _passwordController.text,
-      }),
+    final result = await _authService.login(
+      _emailController.text,
+      _passwordController.text,
     );
 
-    final responseData = jsonDecode(response.body);
+    final responseData = result['data'];
+    final statusCode = result['statusCode'];
 
-    if (response.statusCode == 200) {
-      await _secureStorage.write(key: 'auth_token', value: responseData['access_token']);
-      await _secureStorage.write(key: 'user_id', value: responseData['user_id'].toString());
-
+    if (statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Login bem-sucedido!',
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text('Login bem-sucedido!', style: TextStyle(color: Colors.white)),
           backgroundColor: Color(0xFF2E3E84),
         ),
       );
@@ -48,10 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Falha no login: ${responseData['message']}',
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text('Falha no login: ${responseData['message']}', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );

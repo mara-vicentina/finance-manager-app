@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../services/transaction_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueNotifier<bool> refreshNotifier;
@@ -17,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  final TransactionService _transactionService = TransactionService();
 
   double saldoAtual = 0.0;
   String? mesAtual;
@@ -51,42 +53,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> getData() async {
-    String baseUrl = 'https://goldenrod-badger-186312.hostingersite.com/api/dashboard';
+    final result = await _transactionService.getDashboardSummary();
+    final statusCode = result['statusCode'];
+    final responseData = result['data'];
 
-    String? token = await _secureStorage.read(key: 'auth_token');
-    if (token == null) {
+    if (statusCode == 200 && responseData["success"] == true) {
+      setState(() {
+        saldoAtual = double.tryParse(responseData["data"]["generalSum"].toString()) ?? 0.0;
+        resumoCategorias = List<Map<String, dynamic>>.from(responseData["data"]["sumCategories"]);
+      });
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro: Token de autenticação não encontrado!', style: TextStyle(color: Colors.white)),
+          content: Text(
+            responseData["message"] ?? 'Erro ao obter dados do dashboard!',
+            style: TextStyle(color: Colors.white),
+          ),
           backgroundColor: Colors.red,
         ),
       );
-      return;
-    }
-
-    try {
-      final response = await http.get(
-        Uri.parse(baseUrl),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        var responseData = jsonDecode(response.body);
-
-        if (responseData["success"] == true) {
-          setState(() {
-            saldoAtual = double.tryParse(responseData["data"]["generalSum"].toString()) ?? 0.0;
-            resumoCategorias = List<Map<String, dynamic>>.from(responseData["data"]["sumCategories"]);
-          });
-        }
-      } else {
-        print('Erro na requisição: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Erro ao fazer a requisição: $e');
     }
   }
 

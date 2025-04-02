@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'login_screen.dart';
+import '../services/user_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -22,8 +23,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordConfirmationController = TextEditingController();
-
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  final UserService _userService = UserService();
 
   bool _updatePassword = false;
   String? _formattedDate;
@@ -41,86 +42,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _getUserData() async {
-    String? token = await _secureStorage.read(key: 'auth_token');
-    String? user_id = await _secureStorage.read(key: 'user_id');
+    final data = await _userService.getUserData();
 
-    if (token == null || user_id == null) {
+    if (data == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro: Token ou ID do usuário não encontrado!', style: TextStyle(color: Colors.white)),
+          content: Text('Erro ao carregar dados do usuário!', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user/$user_id';
-
-    try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body)['data'];
-
-        setState(() {
-          _nameController.text = responseData['name'] ?? '';
-          _cpfController.text = responseData['cpf'] ?? '';
-          _cepController.text = responseData['cep'] ?? '';
-          _phoneController.text = responseData['phone_number'] ?? '';
-          _emailController.text = responseData['email'] ?? '';
-          _addressController.text = responseData['address'] ?? '';
-
-          if (responseData['birth_date'] != null) {
-            _formattedDate = responseData['birth_date'];
-            _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.parse(responseData['birth_date']));
-          } else {
-            _formattedDate = '';
-            _dateController.text = '';
-          }
-        });
-
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao obter dados do usuário!', style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.red,
-          ),
-        );
+    setState(() {
+      _nameController.text = data['name'] ?? '';
+      _cpfController.text = data['cpf'] ?? '';
+      _cepController.text = data['cep'] ?? '';
+      _phoneController.text = data['phone_number'] ?? '';
+      _emailController.text = data['email'] ?? '';
+      _addressController.text = data['address'] ?? '';
+      if (data['birth_date'] != null) {
+        _formattedDate = data['birth_date'];
+        _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.parse(data['birth_date']));
       }
-    } catch (e) {
-      print("Erro na requisição: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao conectar com o servidor!', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    });
   }
 
   Future<void> editUser() async {
-    String? token = await _secureStorage.read(key: 'auth_token');
-    String? user_id = await _secureStorage.read(key: 'user_id');
-
-    if (token == null || user_id == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro: Token ou ID do usuário não encontrado!', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user/$user_id';
-
     Map<String, dynamic> body = {
       'name': _nameController.text,
       'cpf': _cleanText(_cpfController.text),
@@ -135,44 +83,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body['password_confirmation'] = _passwordConfirmationController.text;
     }
 
+    final result = await _userService.updateUser(body);
+    final responseData = result['data'];
+    final statusCode = result['statusCode'];
 
-    final response = await http.put(
-      Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    );
-
-    final responseData = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
+    if (statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Usuário editado com sucesso!',
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text('Usuário editado com sucesso!', style: TextStyle(color: Colors.white)),
           backgroundColor: Color(0xFF2E3E84),
         ),
       );
-
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
     } else {
       String errorMessage = responseData['message'] ?? 'Erro ao editar usuário';
-
-      if (responseData.containsKey('errors') && responseData['errors'] is List) {
-        errorMessage += "\n" + responseData['errors'].join("\n");
+      if (responseData['errors'] is List) {
+        errorMessage += "\n" + (responseData['errors'] as List).join("\n");
       }
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            errorMessage,
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text(errorMessage, style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 4),
         ),
@@ -181,62 +111,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> deleteUser() async {
-    String? token = await _secureStorage.read(key: 'auth_token');
-    String? user_id = await _secureStorage.read(key: 'user_id');
+    final result = await _userService.deleteUser();
+    final statusCode = result['statusCode'];
+    final responseData = result['data'];
 
-    if (token == null || user_id == null) {
+    if (statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro: Token ou ID do usuário não encontrado!', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.red,
+          content: Text('Conta excluída com sucesso!', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
         ),
       );
-      return;
-    }
 
-    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user/$user_id';
-
-    try {
-      final response = await http.delete(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+      await _secureStorage.deleteAll();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+        (Route<dynamic> route) => false,
       );
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Conta excluída com sucesso!', style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        await _secureStorage.deleteAll();
-        
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-          (Route<dynamic> route) => false,
-        );
-      } else {
-        final responseData = jsonDecode(response.body);
-        String errorMessage = responseData['message'] ?? 'Erro ao excluir a conta';
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage, style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      print("Erro ao excluir a conta: $e");
+    } else {
+      String errorMessage = responseData['message'] ?? 'Erro ao excluir a conta';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao conectar com o servidor!', style: TextStyle(color: Colors.white)),
+          content: Text(errorMessage, style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );

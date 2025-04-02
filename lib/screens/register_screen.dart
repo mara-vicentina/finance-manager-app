@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/user_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -15,29 +16,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordConfirmationController = TextEditingController();
+  final UserService _userService = UserService();
 
   String? _formattedDate;
   bool _obscurePassword = true;
   bool _obscurePasswordConfirmation = true;
 
   Future<void> createUser() async {
-    final String url = 'https://goldenrod-badger-186312.hostingersite.com/api/user';
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'name': _nameController.text,
-        'email': _emailController.text,
-        'password': _passwordController.text,
-        'password_confirmation': _passwordConfirmationController.text,
-        'birth_date': _formattedDate,
-      }),
+    final result = await _userService.registerUser(
+      name: _nameController.text,
+      email: _emailController.text,
+      password: _passwordController.text,
+      passwordConfirmation: _passwordConfirmationController.text,
+      birthDate: _formattedDate,
     );
 
-    final responseData = jsonDecode(response.body);
+    final responseData = result['data'];
+    final statusCode = result['statusCode'];
 
-    if (response.statusCode == 201) {
+    if (statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -47,21 +44,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: Color(0xFF2E3E84),
         ),
       );
-
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
     } else {
       String errorMessage = responseData['message'] ?? 'Erro ao criar conta';
 
-      if (responseData.containsKey('errors') && responseData['errors'] is List) {
-        errorMessage += "\n" + responseData['errors'].join("\n");
+      if (responseData['errors'] is List) {
+        errorMessage += "\n" + (responseData['errors'] as List).join("\n");
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            errorMessage,
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text(errorMessage, style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 4),
         ),

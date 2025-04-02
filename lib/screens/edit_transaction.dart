@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import '../services/transaction_service.dart';
 
 class CurrencyInputFormatter extends TextInputFormatter {
     @override
@@ -38,6 +39,7 @@ class EditTransactionScreen extends StatefulWidget {
 }
 
 class _EditTransactionScreenState extends State<EditTransactionScreen> {
+    final TransactionService _transactionService = TransactionService();
     late int _transactionId;
     late TextEditingController _titleController;
     late TextEditingController _amountController;
@@ -65,67 +67,41 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     }
 
     Future<void> _updateTransaction() async {
-        String baseUrl = 'https://goldenrod-badger-186312.hostingersite.com/api/transaction/$_transactionId';
-
-        String? token = await FlutterSecureStorage().read(key: 'auth_token');
-        if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-            content: Text('Erro: Token de autenticação não encontrado!', style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.red,
-            ),
-        );
-        return;
-        }
-
-        final response = await http.put(
-            Uri.parse(baseUrl),
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-                "type": _selectedType, 
-                "transaction_date": _formattedDate, 
-                "value": _amountController.text, 
-                "category":_selectedCategory, 
-                "description": _titleController.text,
-                "payment_method": _selectedPaymentMethod,
-                "payment_status": _selectedStatusPayment,
-            }),
+        final result = await _transactionService.updateTransaction(
+            transactionId: _transactionId,
+            type: _selectedType,
+            description: _titleController.text,
+            value: _amountController.text,
+            transactionDate: _formattedDate ?? '',
+            category: _selectedCategory,
+            paymentMethod: _selectedPaymentMethod,
+            paymentStatus: _selectedStatusPayment,
         );
 
-        final responseData = jsonDecode(response.body);
+        final responseData = result['data'];
+        final statusCode = result['statusCode'];
 
-        if (response.statusCode == 200) {
-            var updatedData = jsonDecode(response.body);
+        if (statusCode == 200) {
             ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                content: Text(
-                    'Transação editada com sucesso!',
-                    style: TextStyle(color: Colors.white),
-                ),
+            SnackBar(
+                content: Text('Transação editada com sucesso!', style: TextStyle(color: Colors.white)),
                 backgroundColor: Color(0xFF2E3E84),
-                ),
+            ),
             );
-            Navigator.pop(context, updatedData['success']);
+            Navigator.pop(context, responseData['success']);
         } else {
             String errorMessage = responseData['message'] ?? 'Erro ao editar transação';
 
-            if (responseData.containsKey('errors') && responseData['errors'] is List) {
-                errorMessage += "\n" + responseData['errors'].join("\n");
+            if (responseData['errors'] is List) {
+            errorMessage += "\n" + (responseData['errors'] as List).join("\n");
             }
 
             ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                content: Text(
-                    errorMessage,
-                    style: TextStyle(color: Colors.white),
-                ),
+            SnackBar(
+                content: Text(errorMessage, style: TextStyle(color: Colors.white)),
                 backgroundColor: Colors.red,
                 duration: Duration(seconds: 4),
-                ),
+            ),
             );
         }
     }

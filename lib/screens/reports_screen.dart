@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
+import '../services/report_service.dart';
 
 class ReportsScreen extends StatefulWidget {
   @override
@@ -17,6 +18,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _endDateController = TextEditingController();
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  final ReportService _reportService = ReportService();
 
   String? _formattedStartDate;
   String? _formattedEndDate;
@@ -29,41 +31,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> getData() async {
-    String baseUrl = 'https://goldenrod-badger-186312.hostingersite.com/api/report/monthly-transactions';
+    final result = await _reportService.getMonthlyReport();
+    final statusCode = result['statusCode'];
+    final responseData = result['data'];
 
-    String? token = await _secureStorage.read(key: 'auth_token');
-    if (token == null) {
+    if (statusCode == 200 && responseData["success"] == true) {
+      setState(() {
+        monthlyData = List<Map<String, dynamic>>.from(responseData["data"]);
+      });
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro: Token de autenticação não encontrado!', style: TextStyle(color: Colors.white)),
+          content: Text(responseData["message"] ?? 'Erro ao carregar relatório!', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
-      return;
-    }
-
-    try {
-      final response = await http.get(
-        Uri.parse(baseUrl),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        var responseData = jsonDecode(response.body);
-
-        if (responseData["success"] == true) {
-          setState(() {
-            monthlyData = List<Map<String, dynamic>>.from(responseData["data"]);
-          });
-        }
-      } else {
-        print('Erro na requisição: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Erro ao fazer a requisição: $e');
     }
   }
 
@@ -72,60 +54,33 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> downloadExcel() async {
-    WidgetsFlutterBinding.ensureInitialized();
-
     if (_formattedStartDate == null || _formattedEndDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Por favor, selecione as datas antes de buscar!',
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text('Por favor, selecione as datas antes de buscar!', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    String baseUrl = 'https://goldenrod-badger-186312.hostingersite.com/api/export/transactions';
+    final result = await _reportService.downloadExcelReport(
+      startDate: _formattedStartDate!,
+      endDate: _formattedEndDate!,
+    );
 
-    String? token = await _secureStorage.read(key: 'auth_token');
-    if (token == null) {
+    final statusCode = result['statusCode'];
+
+    if (statusCode == 200) {
+      OpenFilex.open(result['filePath']);
+    } else {
+      final errorMessage = result['data']['message'] ?? 'Erro ao baixar o relatório';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro: Token de autenticação não encontrado!', style: TextStyle(color: Colors.white)),
+          content: Text(errorMessage, style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
-      return;
-    }
-
-    Map<String, String> queryParams = {
-      'start_date': _formattedStartDate!,
-      'end_date': _formattedEndDate!,
-    };
-
-    Uri uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
-
-    try {
-      final response = await http.get(uri, headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      });
-
-      if (response.statusCode == 200) {
-        final directory = await getApplicationDocumentsDirectory();
-        final filePath = "${directory.path}/relatorio.xlsx";
-
-        final file = File(filePath);
-        await file.writeAsBytes(response.bodyBytes);
-
-        OpenFilex.open(filePath);
-      } else {
-        print("Erro ao baixar o relatório: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Erro: $e");
     }
   }
 

@@ -1,5 +1,3 @@
-// lib/services/report_service.dart
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -8,7 +6,12 @@ import 'package:path_provider/path_provider.dart';
 
 class ReportService {
   final String _baseUrl = 'https://goldenrod-badger-186312.hostingersite.com/api';
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
+  final FlutterSecureStorage _storage;
+  final http.Client client;
+
+  ReportService({FlutterSecureStorage? storage, http.Client? client})
+      : _storage = storage ?? const FlutterSecureStorage(),
+        client = client ?? http.Client();
 
   Future<Map<String, dynamic>> getMonthlyReport() async {
     String? token = await _storage.read(key: 'auth_token');
@@ -19,7 +22,7 @@ class ReportService {
       };
     }
 
-    final response = await http.get(
+    final response = await client.get(
       Uri.parse('$_baseUrl/report/monthly-transactions'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -51,7 +54,7 @@ class ReportService {
       'end_date': endDate,
     });
 
-    final response = await http.get(
+    final response = await client.get(
       uri,
       headers: {
         'Authorization': 'Bearer $token',

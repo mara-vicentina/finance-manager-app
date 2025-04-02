@@ -3,11 +3,16 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  final _storage = FlutterSecureStorage();
+  final FlutterSecureStorage _storage;
+  final http.Client client;
   final String _baseUrl = 'https://goldenrod-badger-186312.hostingersite.com/api';
 
+  AuthService({http.Client? client, FlutterSecureStorage? storage})
+      : client = client ?? http.Client(),
+        _storage = storage ?? const FlutterSecureStorage();
+
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final response = await http.post(
+    final response = await client.post(
       Uri.parse('$_baseUrl/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),

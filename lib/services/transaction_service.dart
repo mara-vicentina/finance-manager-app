@@ -3,8 +3,13 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TransactionService {
-  final _storage = FlutterSecureStorage();
+  final http.Client client;
+  final FlutterSecureStorage storage;
   final String _baseUrl = 'https://goldenrod-badger-186312.hostingersite.com/api';
+
+  TransactionService({http.Client? client, FlutterSecureStorage? storage})
+      : client = client ?? http.Client(),
+        storage = storage ?? const FlutterSecureStorage();
 
   Future<Map<String, dynamic>> createTransaction({
     required int type,
@@ -15,7 +20,7 @@ class TransactionService {
     required int paymentMethod,
     required int paymentStatus,
   }) async {
-    String? token = await _storage.read(key: 'auth_token');
+    final token = await storage.read(key: 'auth_token');
 
     if (token == null) {
       return {
@@ -24,7 +29,7 @@ class TransactionService {
       };
     }
 
-    final response = await http.post(
+    final response = await client.post(
       Uri.parse('$_baseUrl/transaction'),
       headers: {
         'Content-Type': 'application/json',
@@ -43,7 +48,6 @@ class TransactionService {
     );
 
     final responseData = jsonDecode(response.body);
-
     return {
       'statusCode': response.statusCode,
       'data': responseData,
@@ -60,8 +64,7 @@ class TransactionService {
     required int paymentMethod,
     required int paymentStatus,
   }) async {
-    final _storage = FlutterSecureStorage();
-    final String? token = await _storage.read(key: 'auth_token');
+    final token = await storage.read(key: 'auth_token');
 
     if (token == null) {
       return {
@@ -70,7 +73,7 @@ class TransactionService {
       };
     }
 
-    final response = await http.put(
+    final response = await client.put(
       Uri.parse('$_baseUrl/transaction/$transactionId'),
       headers: {
         'Content-Type': 'application/json',
@@ -96,8 +99,7 @@ class TransactionService {
   }
 
   Future<Map<String, dynamic>> getDashboardSummary() async {
-    final _storage = FlutterSecureStorage();
-    final String? token = await _storage.read(key: 'auth_token');
+    final token = await storage.read(key: 'auth_token');
 
     if (token == null) {
       return {
@@ -106,7 +108,7 @@ class TransactionService {
       };
     }
 
-    final response = await http.get(
+    final response = await client.get(
       Uri.parse('$_baseUrl/dashboard'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -115,7 +117,6 @@ class TransactionService {
     );
 
     final responseData = jsonDecode(response.body);
-
     return {
       'statusCode': response.statusCode,
       'data': responseData,
@@ -128,8 +129,7 @@ class TransactionService {
     int? type,
     int? category,
   }) async {
-    final _storage = FlutterSecureStorage();
-    final String? token = await _storage.read(key: 'auth_token');
+    final token = await storage.read(key: 'auth_token');
 
     if (token == null) {
       return {
@@ -148,7 +148,7 @@ class TransactionService {
 
     final uri = Uri.parse('$_baseUrl/transactions').replace(queryParameters: queryParams);
 
-    final response = await http.get(
+    final response = await client.get(
       uri,
       headers: {
         'Authorization': 'Bearer $token',
@@ -157,7 +157,6 @@ class TransactionService {
     );
 
     final responseData = jsonDecode(response.body);
-
     return {
       'statusCode': response.statusCode,
       'data': responseData,
@@ -165,8 +164,7 @@ class TransactionService {
   }
 
   Future<Map<String, dynamic>> deleteTransaction(int transactionId) async {
-    final _storage = FlutterSecureStorage();
-    final String? token = await _storage.read(key: 'auth_token');
+    final token = await storage.read(key: 'auth_token');
 
     if (token == null) {
       return {
@@ -175,7 +173,7 @@ class TransactionService {
       };
     }
 
-    final response = await http.delete(
+    final response = await client.delete(
       Uri.parse('$_baseUrl/transaction/$transactionId'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -184,7 +182,6 @@ class TransactionService {
     );
 
     final responseData = jsonDecode(response.body);
-
     return {
       'statusCode': response.statusCode,
       'data': responseData,

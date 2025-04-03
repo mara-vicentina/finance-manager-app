@@ -41,9 +41,9 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     DateTime now = DateTime.now();
-    DateTime oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
+    DateTime oneMonthAgo = _getOneMonthAgo(now);
 
     _startDateController.text = DateFormat('dd-MM-yyyy').format(oneMonthAgo);
     _endDateController.text = DateFormat('dd-MM-yyyy').format(now);
@@ -54,6 +54,22 @@ class _ListTransactionsScreenState extends State<ListTransactionsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       getTransaction();
     });
+  }
+
+  DateTime _getOneMonthAgo(DateTime date) {
+    int year = date.year;
+    int month = date.month - 1;
+
+    if (month == 0) {
+      year -= 1;
+      month = 12;
+    }
+
+    int lastDayOfPrevMonth = DateTime(year, month + 1, 0).day;
+
+    int day = date.day > lastDayOfPrevMonth ? lastDayOfPrevMonth : date.day;
+
+    return DateTime(year, month, day);
   }
 
   void _openAddTransactionScreen() async {
